@@ -5,17 +5,17 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.model_selection import cross_validate
 from sklearn.metrics import accuracy_score, f1_score, make_scorer
 from sklearn.pipeline import Pipeline
-from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import SelectKBest,mutual_info_classif
 from sklearn.model_selection import KFold
 from statistics import mean
 from sklearn.model_selection import train_test_split
 
 
-class Classifier:
-    filename = "//preprocessed_dataset.csv"
+class AutismClassifier:
+    filename = "Dataset/preprocessed_dataset.csv"
     x = None
     y = None
-
+    clf = None
 
     def _init_(self):
         pass
@@ -35,8 +35,8 @@ class Classifier:
         return self.y
 
 
-    def evaluate_classifier(self,clf,x,y):
-        estimators = [('fs',SelectKBest()),('clf',clf)]
+    def evaluate_classifier(self,clf):
+        estimators = [('fs',SelectKBest(mutual_info_classif)),('clf',clf)]
         pipe_fs = Pipeline(estimators)
 
         estimators_nofs = [('clf',clf)]
@@ -45,16 +45,16 @@ class Classifier:
         kf = KFold(n_splits=10)
 
         results_fs = cross_validate(pipe_fs,
-                             x,
-                             y,
+                             self.x,
+                             self.y,
                              scoring = {'fscore': make_scorer(f1_score),
                                         'accuracy': make_scorer(accuracy_score)},
                              return_estimator = True,
                              cv = kf,
                              n_jobs = -1)
         results_nofs = cross_validate(pipe_nofs,
-                             x,
-                             y,
+                             self.x,
+                             self.y,
                              scoring = {'fscore': make_scorer(f1_score),
                                         'accuracy': make_scorer(accuracy_score)},
                              return_estimator = True,
@@ -70,8 +70,13 @@ class Classifier:
         print("Mean No feature selection",mean(metrics['nofsel']))
         print(ttest_rel(metrics['fsel'],metrics['nofsel']))
 
-    def train_classifier(self,clf):
+    def train_classifier(self,clf = AdaBoostClassifier()):
+        clf.fit(self.x)
+        self.clf = clf
 
+    def classify_patient(self,labels):
+        predicted_labels = self.clf.predict(labels)
+        return predicted_labels
 
 
 
